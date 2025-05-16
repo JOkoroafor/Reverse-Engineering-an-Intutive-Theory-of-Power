@@ -1,0 +1,11 @@
+Game,U_P1,U_P2,Relative Utility (P2 - P1)
+common_interest_A,9.21,9.21,0.0
+common_interest_B,9.34,9.34,0.0
+safe_shot_A,4.21,8.43,4.21
+strategic_dummy_A,7.58,7.58,0.0
+strategic_dummy_B,5.38,5.38,0.0
+near_dictator_B,11.66,7.3,-4.36
+rational_punish_A,9.19,13.16,3.97
+rational_punish_B,4.51,4.99,0.48
+costly_help_B,3.61,6.67,3.06
+costly_help_A,4.32,6.69,2.37

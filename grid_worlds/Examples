@@ -1,0 +1,88 @@
+
+from mazeworld import MazeWorld
+from __init__ import compute_empowerment, EmpowermentMaximiser 
+import numpy as np 
+import matplotlib.pyplot as plt
+import time 
+from mazeworld import klyubin_world
+from mazeworld import door_world
+from mazeworld import tunnel_world
+from mazeworld import step_world
+from mazeworld import empowered_world
+
+
+def example_1():
+    """ Builds grid world with doors and plots empowerment landscape """ 
+    maze = empowered_world()
+    n_step = 1
+    E = maze.compute_empowerment(n_step=n_step, n_samples=8000)
+    maze.plot(colorMap=E)
+    plt.title('%i-step empowerment' % n_step)
+    plt.show()
+
+def example_2():
+    """ Runs empowerment maximising agent running in a chosen grid world """
+
+    # maze = klyubin_world()
+    maze = step_world()
+    emptymaze = MazeWorld(maze.height, maze.width)
+    n_step = 3
+    start = time.time()
+    initpos = np.random.randint(maze.dims[0], size=2)
+    initpos = [1,4]
+    s =  maze._cell_to_index(initpos)
+    T = emptymaze.compute_model()
+    B = maze.compute_model()
+    E = maze.compute_empowerment(n_step = n_step).reshape(-1)
+    n_s, n_a, _ = T.shape
+    agent = EmpowermentMaximiser(alpha=0.1, gamma=0.9, T = T, n_step=n_step, n_samples=1000, det=1.)
+    steps = int(10000) 
+    visited = np.zeros(maze.dims)
+    tau = np.zeros(steps)
+    D_emp = np.zeros(steps)
+    D_mod = n_s*n_a*np.ones(steps)
+    for t in range(steps):
+        # append data for plotting 
+        tau[t] = agent.tau
+        D_emp[t] = np.mean((E - agent.E)**2)
+        D_mod[t] = D_mod[t] - np.sum(np.argmax(agent.T, axis=0) == np.argmax(B, axis=0))
+        a = agent.act(s)
+        pos = maze._index_to_cell(s)
+        visited[pos[0],pos[1]] += 1
+        s_ = maze.act(s,list(maze.actions.keys())[a])
+        agent.update(s,a,s_)
+        s = s_
+    print("elapsed seconds: %0.3f" % (time.time() - start) )
+    plt.figure(1)
+    plt.title("value map")
+    Vmap = np.max(agent.Q, axis=1).reshape(*maze.dims)
+    maze.plot(colorMap= Vmap )
+    plt.figure(2)
+    plt.title("subjective empowerment")
+    maze.plot(colorMap= agent.E.reshape(*maze.dims))
+    plt.figure(3)
+    plt.title("tau")
+    plt.plot(tau)
+    plt.figure(4)
+    plt.scatter(agent.E, visited.reshape(n_s))
+    plt.xlabel('true empowerment')
+    plt.ylabel('visit frequency')
+    plt.figure(5)
+    plt.title("visited")
+    maze.plot(colorMap=visited.reshape(*maze.dims))
+    fig, ax1 = plt.subplots()
+    red = 'tab:red'
+    ax1.set_xlabel('time')
+    ax1.set_ylabel('MSE of empowerment map', color=red)
+    ax1.plot(D_emp, color=red)
+    ax1.tick_params(axis='y', labelcolor=red)
+    ax2 = ax1.twinx()  
+    ax2.set_ylabel('Model disagreement', color='tab:blue')  
+    ax2.plot(D_mod, color='tab:blue')
+    ax2.tick_params(axis='y', labelcolor='tab:blue')
+    plt.show()
+
+if __name__ == "__main__":
+    ## uncomment below to see examples 
+    example_1()
+    #example_2()

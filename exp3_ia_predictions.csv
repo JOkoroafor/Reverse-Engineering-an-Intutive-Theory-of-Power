@@ -1,0 +1,11 @@
+Game,Model,p_in,p_right
+common_interest_A,InequalityAversion,0.6709170303987996,0.5
+common_interest_B,InequalityAversion,0.75140390151513,0.2236005871142327
+safe_shot_A,InequalityAversion,0.5,0.5
+strategic_dummy_A,InequalityAversion,0.4644433418079866,0.5
+strategic_dummy_B,InequalityAversion,0.621732597623325,0.6219709378400905
+near_dictator_B,InequalityAversion,0.575174048890435,0.5310800204168343
+rational_punish_A,InequalityAversion,0.4435903973645785,0.2697592100637351
+rational_punish_B,InequalityAversion,0.7136410080363338,0.2697592100637351
+costly_help_B,InequalityAversion,0.3952987404677314,0.6919227436111769
+costly_help_A,InequalityAversion,0.217175282404333,0.5
