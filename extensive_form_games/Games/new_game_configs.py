@@ -1,0 +1,1 @@
+"Add our new games here. See previous game config files for reference."

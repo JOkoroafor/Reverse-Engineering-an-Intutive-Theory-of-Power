@@ -1,7 +1,7 @@
 Player1 = "1"
 Player2 = "2"
 
-# Game configurations for all 10 games
+# Game configurations for all 30 games
 game_configs = {
     "common_interest": {
         "transitions": {1: {"Out": 2, "In": 3}, 
@@ -341,24 +341,25 @@ game_configs = {
                     3: {Player2: ["Left", "Right"]}},
         "initial_state": 1,
     },
-    "costly_help_B": {
-        "transitions": {1: {"Out": 2, "In": 3}, 
-                        3: {"Left": 4, "Right": 5}},
-        "rewards": {
-            2: {Player1: 3, Player2: 3},
-            4: {Player1: 10, Player2: 5},
-            5: {Player1: 3, Player2: 10},
-        },
-        "actions": {1: {Player1: ["Out", "In"]}, 
-                    3: {Player2: ["Left", "Right"]}},
-        "initial_state": 1,
-    },
+
     "costly_help_A": {
         "transitions": {1: {"Out": 2, "In": 3}, 
                         3: {"Left": 4, "Right": 5}},
         "rewards": {
             2: {Player1: 5, Player2: 5},
             4: {Player1: 3, Player2: 10},
+            5: {Player1: 3, Player2: 10},
+        },
+        "actions": {1: {Player1: ["Out", "In"]}, 
+                    3: {Player2: ["Left", "Right"]}},
+        "initial_state": 1,
+    },
+    "costly_help_B": {
+        "transitions": {1: {"Out": 2, "In": 3}, 
+                        3: {"Left": 4, "Right": 5}},
+        "rewards": {
+            2: {Player1: 3, Player2: 3},
+            4: {Player1: 10, Player2: 5},
             5: {Player1: 3, Player2: 10},
         },
         "actions": {1: {Player1: ["Out", "In"]}, 

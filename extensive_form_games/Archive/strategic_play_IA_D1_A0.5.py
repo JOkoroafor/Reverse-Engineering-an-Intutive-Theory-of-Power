@@ -7,7 +7,7 @@ sys.path.insert(0, '/Users/junior/Desktop/Files/MIT/Research/Projects/Reverse-en
 
 import numpy as np
 from sharing_game import SharingGame
-from game_configs_full import game_configs
+from game_configs_training import game_configs
 
 Player1 = "1"
 Player2 = "2"
@@ -93,14 +93,45 @@ class LevelKSimulation_Selfish:
         opponent = self.game.opponent(player)
         if not self.action_probabilities[opponent]:
             self.simulate_level_1(opponent, state, depth=0, max_depth=max_depth)
-        return self.simulate_level_1(opponent, state, depth=0, max_depth=max_depth)
+
+        for state in self.game.transitions.keys():
+            actions = self.game.get_actions(state, player)
+            expected_utilities = []
+
+            for action in actions:
+                next_state = self.game.get_transition(state, action)
+                if self.game.is_terminal(next_state):
+                    utility = self.game.get_player_utility(player, next_state)
+                else:
+                    opponent_actions = self.game.get_actions(next_state, opponent)
+                    total_utility = 0
+                    for opponent_action in opponent_actions:
+                        opponent_next_state = self.game.get_transition(next_state, opponent_action)
+                        opponent_action_prob = (
+                            self.action_probabilities[opponent][next_state].get(opponent_action, 0)
+                        )
+                        if self.game.is_terminal(opponent_next_state):
+                            utility = self.game.get_player_utility(player, opponent_next_state)
+                        else:
+                            utility = self.simulate_level_2(opponent, opponent_next_state, depth + 1, max_depth)
+                        total_utility += utility * opponent_action_prob
+                    utility = total_utility
+                expected_utilities.append(utility)
+
+            # Convert expected utilities to probabilities using softmax and the player's beta
+            if expected_utilities:
+                beta = self.get_beta(player)
+                probabilities = softmax(expected_utilities, beta=beta)
+                self.action_probabilities[player][state] = {
+                    action: float(prob) for action, prob in zip(actions, probabilities)
+                }
 
 class LevelKSimulation_IA:
     "The objective is to compute the action probabilities for both players"
     "We define 3 ways of computing this which corresponds to level 0,1 and 2 reasoning"
     "For the levels of reasoning that involve utility calculations, the utility of each player"
     "... corresponds to their direct payoff in the game"
-    def __init__(self, game, beta_player1, beta_player2, delta_player1, delta_player2, alpha_player1, alpha_player2):
+    def __init__(self, game, beta_player1, beta_player2):
         """
         Initialize the simulation with different beta parameters for Player 1 and Player 2.
         :param game: Instance of the SharingGame class.
@@ -110,12 +141,6 @@ class LevelKSimulation_IA:
         self.game = game
         self.beta_player1 = beta_player1  # Beta for Player 1
         self.beta_player2 = beta_player2  # Beta for Player 2
-
-        self.delta_player1   = delta_player1   # P1’s disad‐ineq weight
-        self.delta_player2   = delta_player2   # P2’s disad‐ineq weight  
-        self.alpha_player1   = alpha_player1   # P1’s adV‐ineq weight
-        self.alpha_player2   = alpha_player2    # P2’s adv‐ineq weight
-
         "The action probabalities below is what we aim to compute"
         self.action_probabilities = {Player1: {}, Player2: {}}  # Store action probabilities for each player
 
@@ -123,12 +148,6 @@ class LevelKSimulation_IA:
         """Return the beta parameter for the given player."""
         return self.beta_player1 if player == Player1 else self.beta_player2
 
-    def get_IA_params(self, player):
-        if player == Player1:
-            return self.delta_player1, self.alpha_player1
-        else:
-            return self.delta_player2, self.alpha_player2
-        
     def simulate_level_0(self, player):
         """ Level 0 players choose actions uniformly at random. """
         for state in self.game.transitions.keys():
@@ -150,10 +169,9 @@ class LevelKSimulation_IA:
                 if self.game.is_terminal(next_state):
                     self_utility = self.game.get_player_utility(player, next_state)
                     opponent_utility = self.game.get_player_utility(opponent, next_state)
-                    delta, alpha = self.get_IA_params(player)
                     "Setting delta (weighting over disadvantegeous equity) and alpha (weighting over advantageous equity) as free parameters"
-                    disad = delta * max(opponent_utility - self_utility, 0)
-                    ad = alpha * max(self_utility - opponent_utility, 0)
+                    disad = 1 * max(opponent_utility - self_utility, 0)
+                    ad = 0.5 * max(self_utility - opponent_utility, 0)
                     utility = self_utility - disad - ad
                 else:
                     # Simulate opponent's response
@@ -165,12 +183,10 @@ class LevelKSimulation_IA:
                             self.action_probabilities[opponent][next_state].get(opponent_action, 0)
                         )
                         if self.game.is_terminal(opponent_next_state):
-                            self_utility = self.game.get_player_utility(player, opponent_next_state)
-                            opponent_utility = self.game.get_player_utility(opponent, opponent_next_state)
-                            delta, alpha = self.get_IA_params(player)
-                            "Setting delta (weighting over disadvantegeous equity) and alpha (weighting over advantageous equity) as free parameters"
-                            disad = delta * max(opponent_utility - self_utility, 0)
-                            ad = alpha * max(self_utility - opponent_utility, 0)
+                            self_utility = self.game.get_player_utility(player, next_state)
+                            opponent_utility = self.game.get_player_utility(opponent, next_state)
+                            disad = 1 * max(opponent_utility - self_utility, 0)
+                            ad = 0.5 * max(self_utility - opponent_utility, 0)
                             utility = self_utility - disad - ad
                         else:
                             utility = self.simulate_level_1(opponent, opponent_next_state, depth + 1, max_depth)
@@ -201,10 +217,8 @@ class LevelKSimulation_IA:
                 if self.game.is_terminal(next_state):
                     self_utility = self.game.get_player_utility(player, next_state)
                     opponent_utility = self.game.get_player_utility(opponent, next_state)
-                    delta, alpha = self.get_IA_params(player)
-                    "Setting delta (weighting over disadvantegeous equity) and alpha (weighting over advantageous equity) as free parameters"
-                    disad = delta * max(opponent_utility - self_utility, 0)
-                    ad = alpha * max(self_utility - opponent_utility, 0)
+                    disad = 1 * max(opponent_utility - self_utility, 0)
+                    ad = 0.5 * max(self_utility - opponent_utility, 0)
                     utility = self_utility - disad - ad
                 else:
                     opponent_actions = self.game.get_actions(next_state, opponent)
@@ -217,10 +231,8 @@ class LevelKSimulation_IA:
                         if self.game.is_terminal(opponent_next_state):
                             self_utility = self.game.get_player_utility(player, opponent_next_state)
                             opponent_utility = self.game.get_player_utility(opponent, opponent_next_state)
-                            delta, alpha = self.get_IA_params(player)
-                            "Setting delta (weighting over disadvantegeous equity) and alpha (weighting over advantageous equity) as free parameters"
-                            disad = delta * max(opponent_utility - self_utility, 0)
-                            ad = alpha * max(self_utility - opponent_utility, 0)
+                            disad = 1 * max(opponent_utility - self_utility, 0)
+                            ad = 0.5 * max(self_utility - opponent_utility, 0)
                             utility = self_utility - disad - ad
                         else:
                             utility = self.simulate_level_2(opponent, opponent_next_state, depth + 1, max_depth)
@@ -297,6 +309,5 @@ for game_name, config in game_configs.items():
     p_in_player1 = simulation.action_probabilities[Player1].get(1, {}).get("In", 0)
     p_right_player2 = simulation.action_probabilities[Player2].get(3, {}).get("Right", 0)
 
-    print(f"Game: {game_name}")
-    print(f"P(In) for Player 1: {p_in_player1}")
-    print(f"P(Right) for Player 2: {p_right_player2}")
+    #print(f"P(In) for Player 1: {p_in_player1}")
+    #print(f"P(Right) for Player 2: {p_right_player2}")
